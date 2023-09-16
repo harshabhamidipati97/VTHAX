@@ -1,9 +1,12 @@
 import streamlit as st
 
+from dotenv import load_dotenv
 import openai
+import os
 
-openai.api_base = 'http://aitools.cs.vt.edu:7860/openai/v1'
-openai.api_key = 'aitools'
+load_dotenv()
+openai.api_base = os.getenv('OPENAI_API_BASE')
+openai.api_key =   os.getenv('OPENAI_API_KEY')
 
 st.header('Know Your Fin')
 
@@ -19,7 +22,7 @@ def get_completion(prompt, model="gpt-3.5-turbo"):
 
 
 def converse(prompt, messages=None, model="gpt-3.5-turbo", max_tokens=2500, temperature=0, top_p=1, frequency_penalty=0,
-             presence_penalty=0):
+            presence_penalty=0):
     # Add the user's message to the list of messages
     if messages is None:
         messages = []
