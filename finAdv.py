@@ -1,52 +1,67 @@
 import streamlit as st
 
-from dotenv import load_dotenv
 import openai
 import os
 
+from langchain.chat_models import ChatOpenAI
+from langchain.vectorstores import Chroma
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import RetrievalQA
+from langchain.document_loaders import UnstructuredFileLoader
+from dotenv import load_dotenv
+
+
+def process_llm_response(llm_response):
+    return llm_response['result']
+
+
 load_dotenv()
-openai.api_base = os.getenv('OPENAI_API_BASE')
-openai.api_key =   os.getenv('OPENAI_API_KEY')
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+turbo_llm = ChatOpenAI(openai_api_key=OPENAI_API_KEY,
+                       temperature=0,
+                       model_name='gpt-4'
+                       )
+
+
+def handle(file, prompt):
+    loader = UnstructuredFileLoader(file)
+    documents = loader.load()
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+    texts = text_splitter.split_documents(documents)
+
+    persist_directory = 'db'
+    embedding = OpenAIEmbeddings()
+    vectordb = Chroma.from_documents(documents=texts,
+                                     embedding=embedding,
+                                     persist_directory=persist_directory)
+    vectordb.persist()
+    vectordb = None
+
+    vectordb = Chroma(persist_directory=persist_directory,
+                      embedding_function=embedding)
+
+    retriever = vectordb.as_retriever(search_kwargs={"k": 2})
+
+    qa_chain = RetrievalQA.from_chain_type(llm=turbo_llm,
+                                           chain_type="stuff",
+                                           retriever=retriever,
+                                           return_source_documents=True)
+    llm_response = qa_chain(prompt)
+    return process_llm_response(llm_response)
+
 
 st.header('Know Your Fin')
+max_upload_size = 10 * 1024 * 1024
 
-def get_completion(prompt, model="gpt-3.5-turbo"):
-    messages = [{"role": "user", "content": prompt}]
+uploaded_file = st.file_uploader('Upload a PDF file', type='pdf',max_upload_size=max_upload_size)
+if uploaded_file is not None:
+    temp_dir = '/tmp/'
+    temp_file_path = os.path.join('temp/', uploaded_file.name)
+    with open(temp_file_path, "wb") as f:
+        f.write(uploaded_file.read())
+    # Create the 'local_storage' directory if it doesn't exist
+    os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
 
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        temperature=0,  # this is the degree of randomness of the model's output
-    )
-    return response.choices[0].message["content"]
-
-
-def converse(prompt, messages=None, model="gpt-3.5-turbo", max_tokens=2500, temperature=0, top_p=1, frequency_penalty=0,
-            presence_penalty=0):
-    # Add the user's message to the list of messages
-    if messages is None:
-        messages = []
-
-    messages.append({"role": "user", "content": prompt})
-
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        top_p=top_p,
-        frequency_penalty=frequency_penalty,
-        presence_penalty=presence_penalty,
-    ).choices[0].message["content"]
-
-    # Add the assistant's message to the list of messages
-    messages.append({"role": "assistant", "content": response})
-
-    return response, messages
-
-
-input_text = st.text_area('Enter your text here')
-messages = []
-prompt = input_text
-response, messages = converse(prompt,messages)
-st.write(response)
+    prompt = st.text_area('Enter your query about the PDF file', height=200)
+    st.write(handle(temp_file_path, prompt))
