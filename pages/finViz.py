@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-st.header("Know your Fin")
-st.subheader("Understanding numbers...")
+st.header("FinViz : Numbers made easy")
 
 # Upload Excel file
 try:
