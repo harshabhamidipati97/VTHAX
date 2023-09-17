@@ -5,10 +5,12 @@ from streamlit_chat import message
 import os
 import datetime
 
+st.set_page_config(layout='wide')
 load_dotenv()
 openai.api_base = os.getenv('OPENAI_API_BASE')
 openai.api_key =   os.getenv('OPENAI_API_KEY')
 
+st.title(':blue[FINMAP] : Navigating the World of Numbers')
 st.header("FinProf : Your Friendly Finance Professor")
 with st.expander("About Me"):
     st.write("""Hello, I'm FinProf, an experienced finance professor here to assist you in gaining a deeper understanding of finance, FinTech and anything related to finance. I'm dedicated to providing you with comprehensive explanations and guidance on all matters related to the financial domain.
@@ -44,16 +46,17 @@ def mergeChats(lst1, lst2):
 if user_input := st.chat_input("Hello I'm FinProf, What do you want to know about finance?"):
         conversation_history.append(f"You: {user_input}")
         # message(user_input,is_user=True)
-        response = openai.ChatCompletion.create(
-                    model="gpt-4",
-                    temperature=1,
-                    presence_penalty=0,
-                    frequency_penalty=0,
-                    messages=[
-                        {"role": "system", "content": f"{persona}. Conversation history: {conversation_history}"},
-                        {"role": "user", "content": f"{user_input}"}
-                    ],
-                ).choices[0].message["content"]
+        with st.spinner('Writing your answer...'):
+            response = openai.ChatCompletion.create(
+                        model="gpt-4",
+                        temperature=1,
+                        presence_penalty=0,
+                        frequency_penalty=0,
+                        messages=[
+                            {"role": "system", "content": f"{persona}. Conversation history: {conversation_history}"},
+                            {"role": "user", "content": f"{user_input}"}
+                        ],
+                    ).choices[0].message["content"]
         
         # message(response)
         st.session_state.past.append(f"You: {user_input}\n")

@@ -50,6 +50,7 @@ def handle(file, prompt):
     llm_response = qa_chain(prompt)
     return process_llm_response(llm_response)
 
+st.title(':blue[FINMAP] : Navigating the World of Numbers')
 
 st.header('FinFiles : Know Your Document Inside Out')
 
@@ -65,5 +66,6 @@ if uploaded_file is not None:
     prompt = st.text_area('Enter your query about the PDF file', height=200)
     
     if st.button("Answer"):
-        st.write(handle(temp_file_path, prompt))
+        with st.spinner('Writing your answer...'):
+            st.write(handle(temp_file_path, prompt))
         

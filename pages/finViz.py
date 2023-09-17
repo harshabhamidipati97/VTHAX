@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+st.title(':blue[FINMAP] : Navigating the World of Numbers')
 
 st.header("FinViz : Numbers made easy")
 
